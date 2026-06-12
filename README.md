@@ -22,20 +22,10 @@ A Retrieval-Augmented Generation (RAG) chatbot built on **Flowise Cloud** that a
 ```
 supplier_performance_data.csv ──(CSV loader, 1 row = 1 chunk)──┐
 SupplyChain_Governance_Policy_v3.2.pdf ──(PDF loader + splitter)─┼─► Document Store ─► Cohere embeddings ─► Pinecone
-derived_analytics_summary.md ──(Text loader + splitter)─────────┘                                             │
                                                                                                               ▼
 User question ─► Cohere (query embedding) ─► Pinecone top-10 retrieval ─► Gemini 2.0-flash ─► grounded answer
 ```
 
-### Why a third document?
-
-Top-k vector retrieval **cannot compute aggregates**. Questions like *"which region has the highest total PO value"* require summing 2,000 rows, but a retriever only ever surfaces the top-k chunks — the LLM would be "summing" 10 rows out of 2,000 and hallucinating the rest. The standard pattern for analytical RAG is to **precompute aggregate documents** and embed them alongside the raw data. `derived_analytics_summary.md` was generated directly from the provided CSV (pandas) and contains:
-
-- Regional/country spend totals and concentration-cap evaluation (Policy §5.3)
-- Tier-3 suppliers with active disruption flags (Policy §9)
-- Volume Rebate Program qualification analysis (Policy §4.2)
-- Supplier Watch List membership (Policy §3.4)
-- Average defect rate per product category vs the Tier-2 ceiling (Policy §3.2)
 
 The raw CSV (2,000 row-chunks) still serves PO-level and supplier-level lookups; the summary serves aggregate questions; the policy PDF serves rule/threshold questions. Three granularities, one index.
 
@@ -47,7 +37,7 @@ All three sources were loaded into a single Flowise Document Store (**BQBYTE KB 
 |---|---|---|---|
 | `supplier_performance_data.csv` | CSV File (no column extraction) | None — 1 row = 1 chunk | **2,000** |
 | `SupplyChain_Governance_Policy_v3.2.pdf` | PDF File (per page) | Recursive Character, **1200 / 150** | **17** |
-| `derived_analytics_summary.md` | Text File | Recursive Character, **1200 / 150** | **5** |
+
 
 ### Two chunk configurations tested (policy PDF)
 
@@ -123,6 +113,5 @@ scm-assistant-bot/
 - **Evaluation harness** — script the 5 canonical questions against the prediction API and assert key figures, so any flow change is regression-tested automatically.
 - **Production LLM quota** — the free Gemini tier has small daily caps; a production deployment would use a paid key or a higher-headroom provider (e.g. Groq) to survive evaluation traffic.
 
----
 
 *Built with Flowise Cloud · Cohere · Pinecone · Google Gemini — submitted by Shrutika Mahajan
